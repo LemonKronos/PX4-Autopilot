@@ -1,61 +1,105 @@
 #!/bin/sh
 #
-# @name Alpha Minus 1
+# @name Alpha Minus 1 (Updated 2-Elevon + 2-Tilt Configuration)
 #
 # @type VTOL Tiltrotor
 #
 
 . ${R}etc/init.d/rc.vtol_defaults
 
+# ----------------------------------------------------------------------
+# 1. SIMULATOR ENVIRONMENT
+# ----------------------------------------------------------------------
 PX4_SIMULATOR=${PX4_SIMULATOR:=gz}
 PX4_GZ_WORLD=${PX4_GZ_WORLD:=baylands}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=alpha_minus_1}
 
-param set-default SIM_GZ_EN 1 # Gazebo bridge
+param set-default SIM_GZ_EN 1 # Enable Gazebo bridge
 
+# MAV_TYPE 21 = Tiltrotor VTOL
 param set-default MAV_TYPE 21
 
+# CA_AIRFRAME 3 = Tiltrotor geometry for the Control Allocator
 param set-default CA_AIRFRAME 3
 
+# ----------------------------------------------------------------------
+# 2. ROTORS (MOTORS)
+# PX = X-axis (Forward is positive)
+# PY = Y-axis (Right/Starboard is positive)
+# KM = Yaw moment / Spin direction (+ is CCW, - is CW)
+# TILT = Which tilt servo this rotor is physically mounted to
+# ----------------------------------------------------------------------
 param set-default CA_ROTOR_COUNT 4
+
+# Rotor 0: Front-Right, CCW spin, tilts with Tilt Servo 0 (TL0)
 param set-default CA_ROTOR0_PX 0.1515
 param set-default CA_ROTOR0_PY 0.245
 param set-default CA_ROTOR0_KM 0.05
+param set-default CA_ROTOR0_TILT 1
+
+# Rotor 1: Rear-Left, CCW spin, fixed vertically (no TILT param)
 param set-default CA_ROTOR1_PX -0.1515
 param set-default CA_ROTOR1_PY -0.1875
 param set-default CA_ROTOR1_KM 0.05
+
+# Rotor 2: Front-Left, CW spin, tilts with Tilt Servo 1 (TL1)
 param set-default CA_ROTOR2_PX 0.1515
 param set-default CA_ROTOR2_PY -0.245
 param set-default CA_ROTOR2_KM -0.05
+param set-default CA_ROTOR2_TILT 2
+
+# Rotor 3: Rear-Right, CW spin, fixed vertically (no TILT param)
 param set-default CA_ROTOR3_PX -0.1515
 param set-default CA_ROTOR3_PY 0.1875
 param set-default CA_ROTOR3_KM -0.05
 
-param set-default CA_ROTOR0_TILT 1
-param set-default CA_ROTOR2_TILT 2
-param set-default CA_SV_TL0_MAXA 90
-param set-default CA_SV_TL0_MINA 0
-param set-default CA_SV_TL0_TD 0
-param set-default CA_SV_TL0_CT 1
+# ----------------------------------------------------------------------
+# 3. TILT SERVOS (TL)
+# Controls the angle of the tilting rotors (0 = straight up, 90 = forward)
+# ----------------------------------------------------------------------
+param set-default CA_SV_TL_COUNT 2
+
+# TL0: Front-Right Tilt Mechanism
+param set-default CA_SV_TL0_MAXA 90 # Max angle (degrees)
+param set-default CA_SV_TL0_MINA 0  # Min angle (degrees)
+param set-default CA_SV_TL0_TD 0    # Transition duration (seconds)
+param set-default CA_SV_TL0_CT 1    # Control type
+
+# TL1: Front-Left Tilt Mechanism
 param set-default CA_SV_TL1_MAXA 90
 param set-default CA_SV_TL1_MINA 0
 param set-default CA_SV_TL1_TD 0
 param set-default CA_SV_TL1_CT 1
 
+# ----------------------------------------------------------------------
+# 4. AERODYNAMIC CONTROL SURFACES (CS)
+# TRQ_R = Roll torque (-0.5 pushes left wing down/right wing up)
+# TRQ_P = Pitch torque (+0.5 pushes nose up)
+# ----------------------------------------------------------------------
+param set-default CA_SV_CS_COUNT 2
+
+# CS0: Left Elevon (TYPE 5 = Left Elevon)
+# Mixed to handle both Roll (negative torque) and Pitch (positive torque)
+param set-default CA_SV_CS0_TYPE 5
 param set-default CA_SV_CS0_TRQ_R -0.5
-param set-default CA_SV_CS0_TYPE 1
+param set-default CA_SV_CS0_TRQ_P 0.5
+
+# CS1: Right Elevon (TYPE 6 = Right Elevon)
+# Mixed to handle both Roll (positive torque) and Pitch (positive torque)
+param set-default CA_SV_CS1_TYPE 6
 param set-default CA_SV_CS1_TRQ_R 0.5
-param set-default CA_SV_CS1_TYPE 2
-param set-default CA_SV_CS2_TRQ_P 1
-param set-default CA_SV_CS2_TYPE 3
-param set-default CA_SV_CS_COUNT 3
-param set-default CA_SV_TL_COUNT 2
+param set-default CA_SV_CS1_TRQ_P 0.5
 
-param set-default SIM_GZ_EC_FUNC1 101
-param set-default SIM_GZ_EC_FUNC2 102
-param set-default SIM_GZ_EC_FUNC3 103
-param set-default SIM_GZ_EC_FUNC4 104
+# ----------------------------------------------------------------------
+# 5. GAZEBO BRIDGE: MOTORS
+# Maps PX4's internal Motor outputs (101-104) to Gazebo motor topics
+# ----------------------------------------------------------------------
+param set-default SIM_GZ_EC_FUNC1 101 # Motor 1 -> Rotor 0 (Front-Right)
+param set-default SIM_GZ_EC_FUNC2 102 # Motor 2 -> Rotor 1 (Rear-Left)
+param set-default SIM_GZ_EC_FUNC3 103 # Motor 3 -> Rotor 2 (Front-Left)
+param set-default SIM_GZ_EC_FUNC4 104 # Motor 4 -> Rotor 3 (Rear-Right)
 
+# Gazebo ESC scaling: maps normalized 0-1 to physical rad/s limits
 param set-default SIM_GZ_EC_MIN1 10
 param set-default SIM_GZ_EC_MIN2 10
 param set-default SIM_GZ_EC_MIN3 10
@@ -66,17 +110,24 @@ param set-default SIM_GZ_EC_MAX2 1500
 param set-default SIM_GZ_EC_MAX3 1500
 param set-default SIM_GZ_EC_MAX4 1500
 
-param set-default SIM_GZ_SV_FUNC1 201
-param set-default SIM_GZ_SV_FUNC2 202
-param set-default SIM_GZ_SV_FUNC3 203
-param set-default SIM_GZ_SV_FUNC4 204
-param set-default SIM_GZ_SV_FUNC5 205
+# ----------------------------------------------------------------------
+# 6. GAZEBO BRIDGE: SERVOS
+# Maps PX4's internal Servo outputs (201-204) to Gazebo servo topics
+# ----------------------------------------------------------------------
+param set-default SIM_GZ_SV_FUNC1 201 # Servo 1 -> CS0 (Left Elevon)
+param set-default SIM_GZ_SV_FUNC2 202 # Servo 2 -> CS1 (Right Elevon)
+param set-default SIM_GZ_SV_FUNC3 203 # Servo 3 -> TL0 (Front-Right Tilt)
+param set-default SIM_GZ_SV_FUNC4 204 # Servo 4 -> TL1 (Front-Left Tilt)
 
+# Tilt angle limits applied specifically to Gazebo Servos 3 and 4
+param set-default SIM_GZ_SV_MAXA3 90
+param set-default SIM_GZ_SV_MINA3 0
 param set-default SIM_GZ_SV_MAXA4 90
 param set-default SIM_GZ_SV_MINA4 0
-param set-default SIM_GZ_SV_MAXA5 90
-param set-default SIM_GZ_SV_MINA5 0
 
+# ----------------------------------------------------------------------
+# 7. FIXED-WING (FW) CONTROLLER TUNING
+# ----------------------------------------------------------------------
 param set-default NPFG_PERIOD 12
 param set-default FW_PR_FF 0.2
 param set-default FW_PR_P 0.9
@@ -91,6 +142,9 @@ param set-default FW_T_CLMB_MAX 8
 param set-default FW_T_SINK_MAX 2.7
 param set-default FW_T_SINK_MIN 2.2
 
+# ----------------------------------------------------------------------
+# 8. MULTICOPTER (MC) CONTROLLER TUNING
+# ----------------------------------------------------------------------
 param set-default MC_AIRMODE 1
 param set-default MC_YAWRATE_P 0.4
 param set-default MC_YAWRATE_I 0.0
@@ -101,14 +155,18 @@ param set-default MPC_XY_VEL_P_ACC 3
 param set-default MPC_XY_VEL_I_ACC 4
 param set-default MPC_XY_VEL_D_ACC 0.1
 
+# ----------------------------------------------------------------------
+# 9. VTOL TRANSITION & MISSION BEHAVIOR
+# ----------------------------------------------------------------------
 param set-default MIS_TAKEOFF_ALT 10
-
 param set-default VT_FWD_THRUST_EN 4
 param set-default VT_FWD_THRUST_SC 0.6
 param set-default VT_TILT_TRANS 0.6
 param set-default VT_TYPE 1
 
-# Gimbal settings
+# ----------------------------------------------------------------------
+# 10. GIMBAL / CAMERA MOUNT SETTINGS
+# ----------------------------------------------------------------------
 param set-default MNT_MODE_IN 4
 param set-default MNT_MODE_OUT 2
 param set-default MNT_RC_IN_MODE 1
