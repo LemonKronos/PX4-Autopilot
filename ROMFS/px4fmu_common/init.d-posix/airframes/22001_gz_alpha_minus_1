@@ -15,6 +15,7 @@ PX4_GZ_WORLD=${PX4_GZ_WORLD:=baylands}
 PX4_SIM_MODEL=${PX4_SIM_MODEL:=alpha_minus_1}
 
 param set-default SIM_GZ_EN 1 # Enable Gazebo bridge
+param set-default UXRCE_DDS_SYNCT 0 # Tell PX4 to use Simulation time instead of UNIX time
 
 # MAV_TYPE 21 = Tiltrotor VTOL
 param set-default MAV_TYPE 21
